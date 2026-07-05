@@ -13,6 +13,9 @@ import {
   Search, 
   Code
 } from 'lucide-react';
+import { McpServer } from './simulation/mcp-server';
+import { AgentManager } from './simulation/agent-manager';
+import { validatePayload } from './simulation/payload-validator';
 
 interface ThreatLog {
   id: string;
@@ -63,6 +66,23 @@ interface AgentStep {
   output?: any;
 }
 
+// Singletons for client-side execution
+const mcpServer = new McpServer();
+const agentManager = new AgentManager();
+
+let mockAuthLogs = [
+  { timestamp: new Date(Date.now() - 60000).toISOString(), ip: '10.0.0.12', username: 'admin', status: 'failed' },
+  { timestamp: new Date(Date.now() - 50000).toISOString(), ip: '10.0.0.12', username: 'admin', status: 'failed' },
+  { timestamp: new Date(Date.now() - 40000).toISOString(), ip: '10.0.0.12', username: 'root', status: 'failed' },
+  { timestamp: new Date(Date.now() - 30000).toISOString(), ip: '10.0.0.12', username: 'support', status: 'failed' }
+];
+
+let mockTrafficLogs = [
+  { timestamp: new Date(Date.now() - 30000).toISOString(), sourceIp: '10.0.0.12', destIp: '192.168.1.1', port: 80, byteCount: 152 },
+  { timestamp: new Date(Date.now() - 25000).toISOString(), sourceIp: '10.0.0.12', destIp: '192.168.1.1', port: 443, byteCount: 1024 },
+  { timestamp: new Date(Date.now() - 20000).toISOString(), sourceIp: '10.0.0.12', destIp: '192.168.1.1', port: 22, byteCount: 48 }
+];
+
 export default function App() {
   // Main states
   const [statusData, setStatusData] = useState<SystemStatus | null>(null);
@@ -86,23 +106,25 @@ export default function App() {
   // Terminal scroll reference
   const terminalEndRef = useRef<HTMLDivElement>(null);
 
-  // Fetch status logs and MCP schema details
-  const fetchStatus = async () => {
+  // Read state from client-side MCP Server singleton
+  const fetchStatus = () => {
     try {
-      const res = await fetch('/api/status');
-      const data = await res.json();
-      setStatusData(data);
+      const systemStatus = JSON.parse(mcpServer.readResource('ghostwall://system/status').content);
+      const rawLogs = JSON.parse(mcpServer.readResource('ghostwall://threats/logs').content);
+      
+      setStatusData({
+        ...systemStatus,
+        threatLogs: rawLogs
+      });
     } catch (err) {
       console.error('Error fetching system status:', err);
     }
   };
 
-  const fetchMcpInfo = async () => {
+  const fetchMcpInfo = () => {
     try {
-      const resRes = await fetch('/api/mcp/resources');
-      const resTools = await fetch('/api/mcp/tools');
-      setMcpResources(await resRes.json());
-      setMcpTools(await resTools.json());
+      setMcpResources(mcpServer.listResources());
+      setMcpTools(mcpServer.listTools());
     } catch (err) {
       console.error('Error fetching MCP definitions:', err);
     }
@@ -111,7 +133,7 @@ export default function App() {
   useEffect(() => {
     fetchStatus();
     fetchMcpInfo();
-    const interval = setInterval(fetchStatus, 5000);
+    const interval = setInterval(fetchStatus, 3000);
     return () => clearInterval(interval);
   }, []);
 
@@ -121,7 +143,7 @@ export default function App() {
     }
   }, [simulationLogs]);
 
-  // Run a scenario through local ADK Agent Manager
+  // Run a scenario through local ADK Agent Manager directly in-browser
   const handleRunSimulation = async () => {
     if (isSimulating) return;
     setIsSimulating(true);
@@ -131,15 +153,41 @@ export default function App() {
       { type: 'info', text: `[SYSTEM] Loading local simulated dataset & authentication logs.` },
     ]);
 
-    try {
-      const res = await fetch('/api/simulation/run', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ scenario: selectedScenario, payload: customPayload })
-      });
-      const data = await res.json();
+    // Custom IP seeding based on scenario
+    let suspectIp = '203.0.113.88';
+    if (selectedScenario === 'DDOS_ATTACK') {
+      suspectIp = '10.0.0.25';
+      for (let i = 0; i < 15; i++) {
+        mockTrafficLogs.push({
+          timestamp: new Date().toISOString(),
+          sourceIp: suspectIp,
+          destIp: '192.168.1.1',
+          port: 80,
+          byteCount: 64
+        });
+      }
+    } else if (selectedScenario === 'BRUTE_FORCE') {
+      suspectIp = '172.16.8.5';
+      for (let i = 0; i < 5; i++) {
+        mockAuthLogs.push({
+          timestamp: new Date().toISOString(),
+          ip: suspectIp,
+          username: 'admin',
+          status: 'failed'
+        });
+      }
+    }
 
-      // We will "stream" the agent execution steps to the screen for visual demonstration
+    try {
+      // Run the multi-agent ADK loop on the client
+      const data = await agentManager.runSimulation(
+        selectedScenario,
+        customPayload || '',
+        mockTrafficLogs,
+        mockAuthLogs,
+        mcpServer
+      );
+
       const steps: AgentStep[] = data.steps;
       let stepIndex = 0;
 
@@ -166,7 +214,7 @@ export default function App() {
             { type: 'success', text: `\n[Simulation Complete] Classification: ${data.threatType} | Threat Score: ${data.threatScore}/100 | Action: ${data.mitigationApplied}` }
           ]);
           setIsSimulating(false);
-          fetchStatus(); // Refresh counters & blacklist list
+          fetchStatus();
         }
       };
 
@@ -181,11 +229,19 @@ export default function App() {
     }
   };
 
-  // Reset environmental states
-  const handleResetSimulation = async () => {
+  // Reset environmental states locally
+  const handleResetSimulation = () => {
     try {
-      const res = await fetch('/api/simulation/reset', { method: 'POST' });
-      await res.json();
+      mcpServer.clearActiveBlocks();
+      mockAuthLogs = [
+        { timestamp: new Date(Date.now() - 60000).toISOString(), ip: '10.0.0.12', username: 'admin', status: 'failed' },
+        { timestamp: new Date(Date.now() - 50000).toISOString(), ip: '10.0.0.12', username: 'admin', status: 'failed' },
+        { timestamp: new Date(Date.now() - 40000).toISOString(), ip: '10.0.0.12', username: 'root', status: 'failed' },
+        { timestamp: new Date(Date.now() - 30000).toISOString(), ip: '10.0.0.12', username: 'support', status: 'failed' }
+      ];
+      mockTrafficLogs = [
+        { timestamp: new Date(Date.now() - 30000).toISOString(), sourceIp: '10.0.0.12', destIp: '192.168.1.1', port: 80, byteCount: 152 }
+      ];
       fetchStatus();
       setSimulationLogs([
         { type: 'prompt', text: `> ghostwall-firewall --flush --reset-blacklist` },
@@ -196,21 +252,27 @@ export default function App() {
     }
   };
 
-  // Run validation on sandbox inputs (calls local static validation script)
-  const handleValidateSandbox = async () => {
+  // Run validation on sandbox inputs locally
+  const handleValidateSandbox = () => {
     if (isSandboxing || !sandboxInput.trim()) return;
     setIsSandboxing(true);
     setSandboxResult(null);
 
     try {
-      const res = await fetch('/api/validate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ payload: sandboxInput })
-      });
-      const data = await res.json();
-      setSandboxResult(data);
-      fetchStatus(); // Refresh since malicious sandbox submissions create a log
+      const report = validatePayload(sandboxInput);
+      
+      if (report.isThreat) {
+        mcpServer.addMockLog({
+          type: report.threatType,
+          sourceIp: 'SANDBOX_USER',
+          severity: report.riskScore > 85 ? 'high' : 'medium',
+          message: `Payload Sandbox Flagged: ${report.threatType}. Original: ${report.originalPayload.slice(0, 40)}`,
+          status: 'BLOCKED'
+        });
+      }
+      
+      setSandboxResult(report);
+      fetchStatus();
     } catch (err) {
       console.error('Error validating sandbox payload:', err);
     } finally {
