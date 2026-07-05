@@ -146,8 +146,12 @@ app.get('/api/mcp/tools', (_req, res) => {
 });
 
 /**
- * Start Server
+ * Start Server (Only if not in Vercel Serverless environment)
  */
-app.listen(port, () => {
-  console.log(`[GhostWall Backend] Server is running offline on http://localhost:${port}`);
-});
+export { app };
+
+if (!process.env.VERCEL) {
+  app.listen(port, () => {
+    console.log(`[GhostWall Backend] Server is running offline on http://localhost:${port}`);
+  });
+}
