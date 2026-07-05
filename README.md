@@ -156,7 +156,7 @@ npx ts-node server/scripts/payload-validator.ts "SELECT * FROM users WHERE 1=1"
 
 ## ⚡ Vercel Deployment Instructions
 
-GhostWall has been optimized to deploy as a full-stack serverless app on Vercel:
+GhostWall is deployed as a 100% client-side static React application. There is no backend server setup or API key configuration needed:
 
 1. **Push Changes to GitHub**:
    Ensure all local changes are committed and pushed to your repo.
@@ -168,7 +168,7 @@ GhostWall has been optimized to deploy as a full-stack serverless app on Vercel:
    - **Root Directory**: `./` (leave default)
    - **Build Command**: `npm run build` (runs `tsc && vite build`)
    - **Output Directory**: `dist`
-4. **Deploy**: Click **Deploy**. Vercel will bundle the React client and host the Express backend via Serverless Functions under `api/index.ts` automatically based on the `vercel.json` rewrites.
+4. **Deploy**: Click **Deploy**. Vercel will build the React bundle and deploy the static site instantly.
 
 ---
 
