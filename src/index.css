@@ -1,0 +1,292 @@
+/* Design System CSS for GhostWall Cyber Threat Dashboard */
+
+:root {
+  --bg-primary: #080c14;
+  --bg-secondary: #0e1626;
+  --bg-tertiary: #152238;
+  --bg-card: rgba(13, 23, 42, 0.75);
+  
+  --color-cyan: #00f3ff;
+  --color-emerald: #00ff66;
+  --color-rose: #ff0055;
+  --color-amber: #ffaa00;
+  --color-text-primary: #f1f5f9;
+  --color-text-muted: #94a3b8;
+  --color-border: rgba(0, 243, 255, 0.15);
+  --color-border-hover: rgba(0, 243, 255, 0.35);
+
+  --font-sans: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: 'JetBrains Mono', source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
+  
+  --shadow-neon-cyan: 0 0 15px rgba(0, 243, 255, 0.25);
+  --shadow-neon-emerald: 0 0 15px rgba(0, 255, 66, 0.25);
+  --shadow-neon-rose: 0 0 15px rgba(255, 0, 85, 0.25);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--bg-primary);
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
+  overflow-x: hidden;
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(0, 243, 255, 0.05) 0px, transparent 50%),
+    radial-gradient(at 50% 0%, rgba(255, 0, 85, 0.03) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(0, 255, 66, 0.03) 0px, transparent 50%);
+  background-attachment: fixed;
+  min-height: 100vh;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--bg-tertiary);
+  border-radius: 4px;
+  border: 1px solid var(--color-border);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-cyan);
+  box-shadow: var(--shadow-neon-cyan);
+}
+
+/* Glassmorphism Card Utility */
+.glass-card {
+  background: var(--bg-card);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.glass-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--color-cyan), transparent);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.glass-card:hover {
+  border-color: var(--color-border-hover);
+  box-shadow: 0 8px 32px 0 rgba(0, 243, 255, 0.08), var(--shadow-neon-cyan);
+  transform: translateY(-2px);
+}
+
+.glass-card:hover::before {
+  opacity: 1;
+}
+
+/* Accent Card Borders */
+.glass-card.card-danger {
+  border-color: rgba(255, 0, 85, 0.25);
+}
+.glass-card.card-danger:hover {
+  border-color: rgba(255, 0, 85, 0.5);
+  box-shadow: 0 8px 32px 0 rgba(255, 0, 85, 0.08), var(--shadow-neon-rose);
+}
+.glass-card.card-danger::before {
+  background: linear-gradient(90deg, transparent, var(--color-rose), transparent);
+}
+
+.glass-card.card-success {
+  border-color: rgba(0, 255, 66, 0.25);
+}
+.glass-card.card-success:hover {
+  border-color: rgba(0, 255, 66, 0.5);
+  box-shadow: 0 8px 32px 0 rgba(0, 255, 66, 0.08), var(--shadow-neon-emerald);
+}
+.glass-card.card-success::before {
+  background: linear-gradient(90deg, transparent, var(--color-emerald), transparent);
+}
+
+/* Animations */
+@keyframes pulse-slow {
+  0%, 100% {
+    opacity: 0.2;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.4;
+    transform: scale(1.05);
+  }
+}
+
+@keyframes grid-glow {
+  0% { background-position: 0 0; }
+  100% { background-position: 40px 40px; }
+}
+
+@keyframes glitch {
+  0% { transform: translate(0) }
+  20% { transform: translate(-2px, 2px) }
+  40% { transform: translate(-2px, -2px) }
+  60% { transform: translate(2px, 2px) }
+  80% { transform: translate(2px, -2px) }
+  100% { transform: translate(0) }
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 4s infinite ease-in-out;
+}
+
+/* Matrix scanning line grid background */
+.scanlines {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+  background-size: 100% 4px, 6px 100%;
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0.3;
+}
+
+/* Cyber Terminal Styling */
+.terminal-window {
+  font-family: var(--font-mono);
+  background: rgba(4, 7, 15, 0.95);
+  border: 1px solid var(--color-cyan);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: var(--shadow-neon-cyan);
+}
+
+.terminal-header {
+  background: var(--bg-secondary);
+  padding: 8px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.terminal-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 6px;
+}
+.terminal-dot.dot-red { background-color: var(--color-rose); }
+.terminal-dot.dot-yellow { background-color: var(--color-amber); }
+.terminal-dot.dot-green { background-color: var(--color-emerald); }
+
+.terminal-body {
+  padding: 15px;
+  height: 380px;
+  overflow-y: auto;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.terminal-line {
+  margin-bottom: 6px;
+  border-left: 2px solid transparent;
+  padding-left: 8px;
+}
+
+.terminal-line.info { border-color: var(--color-cyan); color: #c0faf6; }
+.terminal-line.warning { border-color: var(--color-amber); color: #fde047; }
+.terminal-line.error { border-color: var(--color-rose); color: #fda4af; }
+.terminal-line.success { border-color: var(--color-emerald); color: #a7f3d0; }
+.terminal-line.prompt { color: var(--color-text-muted); }
+
+/* Status Badges */
+.status-badge {
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid transparent;
+}
+
+.status-badge.secure {
+  background: rgba(0, 255, 66, 0.1);
+  color: var(--color-emerald);
+  border-color: rgba(0, 255, 66, 0.3);
+  box-shadow: 0 0 10px rgba(0, 255, 66, 0.15);
+}
+
+.status-badge.warning {
+  background: rgba(255, 170, 0, 0.1);
+  color: var(--color-amber);
+  border-color: rgba(255, 170, 0, 0.3);
+  box-shadow: 0 0 10px rgba(255, 170, 0, 0.15);
+}
+
+.status-badge.critical {
+  background: rgba(255, 0, 85, 0.1);
+  color: var(--color-rose);
+  border-color: rgba(255, 0, 85, 0.3);
+  box-shadow: 0 0 10px rgba(255, 0, 85, 0.15);
+}
+
+/* Custom interactive buttons */
+.cyber-button {
+  background: linear-gradient(135deg, var(--bg-secondary), var(--bg-tertiary));
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border);
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+  font-family: var(--font-sans);
+}
+
+.cyber-button:hover {
+  border-color: var(--color-cyan);
+  background: linear-gradient(135deg, var(--bg-tertiary), var(--bg-secondary));
+  box-shadow: var(--shadow-neon-cyan);
+  color: var(--color-cyan);
+  transform: translateY(-1px);
+}
+
+.cyber-button.active {
+  background: linear-gradient(135deg, var(--color-cyan), var(--color-tertiary));
+  color: var(--bg-primary);
+  border-color: var(--color-cyan);
+}
+
+.cyber-button.btn-danger {
+  background: linear-gradient(135deg, rgba(255, 0, 85, 0.1), var(--bg-secondary));
+  border-color: rgba(255, 0, 85, 0.3);
+}
+
+.cyber-button.btn-danger:hover {
+  background: linear-gradient(135deg, rgba(255, 0, 85, 0.2), var(--bg-tertiary));
+  border-color: var(--color-rose);
+  box-shadow: var(--shadow-neon-rose);
+  color: var(--color-rose);
+}
